@@ -30,10 +30,14 @@ export default function Login() {
 
     if (!formData.email) {
       newErrors.email = "Email is required";
+    } else if (!/^\S+@\S+\.\S+$/.test(formData.email)) {
+      newErrors.email = "Email is invalid";
     }
 
     if (!formData.password) {
       newErrors.password = "Password is required";
+    } else if (formData.password.length < 6) {
+      newErrors.password = "Password must be at least 6 characters";
     }
 
     setErrors(newErrors);
@@ -56,16 +60,23 @@ export default function Login() {
         body: JSON.stringify(formData),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        throw new Error("Login failed. Please check your credentials.");
+        throw new Error(
+          data.message || "Login failed. Please check your credentials."
+        );
       }
 
-      const isValid = await response.json();
-      if (isValid) {
-        // On successful login, redirect to dashboard
+      if (data.token && data.user) {
+        // Store user data and token
+        localStorage.setItem("healthOrbitToken", data.token);
+        localStorage.setItem("healthOrbitUser", JSON.stringify(data.user));
+
+        // Redirect to dashboard
         router.push("/dashboard");
       } else {
-        setErrors({ server: "Invalid email or password" });
+        throw new Error("Invalid response from server");
       }
     } catch (err) {
       setErrors((prev) => ({
